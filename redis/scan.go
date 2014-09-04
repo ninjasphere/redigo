@@ -15,6 +15,7 @@
 package redis
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -228,6 +229,7 @@ func Scan(src []interface{}, dest ...interface{}) ([]interface{}, error) {
 type fieldSpec struct {
 	name  string
 	index []int
+	json  bool
 	//omitEmpty bool
 }
 
@@ -267,6 +269,8 @@ func compileStructSpec(t reflect.Type, depth map[string]int, index []int, ss *st
 					switch s {
 					//case "omitempty":
 					//  fs.omitempty = true
+					case "json":
+						fs.json = true
 					default:
 						panic(errors.New("redigo: unknown field flag " + s + " for type " + t.Name()))
 					}
@@ -373,7 +377,15 @@ func ScanStruct(src []interface{}, dest interface{}) error {
 		if fs == nil {
 			continue
 		}
-		if err := convertAssignValue(d.FieldByIndex(fs.index), s); err != nil {
+		if fs.json {
+			data, ok := s.([]byte)
+			if !ok {
+				return errors.New("redigo: Bad json data") // Shouldn't ever happen?
+			}
+			if err := json.Unmarshal(data, d.FieldByIndex(fs.index).Addr().Interface()); err != nil {
+				return err
+			}
+		} else if err := convertAssignValue(d.FieldByIndex(fs.index), s); err != nil {
 			return err
 		}
 	}
