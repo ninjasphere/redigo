@@ -37,6 +37,13 @@ func cannotConvert(d reflect.Value, s interface{}) error {
 }
 
 func convertAssignBytes(d reflect.Value, s []byte) (err error) {
+
+	if d.Type().Kind() == reflect.Ptr || d.Type().Kind() == reflect.Interface {
+		v := reflect.New(d.Type().Elem())
+		d.Set(v)
+		d = d.Elem()
+	}
+
 	switch d.Type().Kind() {
 	case reflect.Float32, reflect.Float64:
 		var x float64
