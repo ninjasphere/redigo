@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -526,7 +527,16 @@ func flattenStruct(args Args, v reflect.Value) Args {
 	ss := structSpecForType(v.Type())
 	for _, fs := range ss.l {
 		fv := v.FieldByIndex(fs.index)
-		args = append(args, fs.name, fv.Interface())
+		if fs.json {
+			js, err := json.Marshal(fv.Interface())
+			if err != nil {
+				log.Printf("redigo: WARNING: Failed to json marshal property %s error: %s", fs.name, err)
+			} else {
+				args = append(args, fs.name, string(js))
+			}
+		} else {
+			args = append(args, fs.name, fv.Interface())
+		}
 	}
 	return args
 }
