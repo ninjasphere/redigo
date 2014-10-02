@@ -40,6 +40,11 @@ func cannotConvert(d reflect.Value, s interface{}) error {
 
 func convertAssignBytes(d reflect.Value, s []byte) (err error) {
 
+	if string(s) == "<nil>" {
+		// Don't do anything. TODO: Stop saving these...
+		return nil
+	}
+
 	if d.Type().Kind() == reflect.Ptr || d.Type().Kind() == reflect.Interface {
 		v := reflect.New(d.Type().Elem())
 		d.Set(v)
