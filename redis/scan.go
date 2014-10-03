@@ -41,7 +41,7 @@ func cannotConvert(d reflect.Value, s interface{}) error {
 func convertAssignBytes(d reflect.Value, s []byte) (err error) {
 
 	if string(s) == "<nil>" {
-		// Don't do anything. TODO: Stop saving these...
+		// Don't do anything.
 		return nil
 	}
 
@@ -516,11 +516,13 @@ func (args Args) AddFlat(v interface{}) Args {
 		}
 	case reflect.Ptr:
 		if rv.Type().Elem().Kind() == reflect.Struct {
-			if !rv.IsNil() {
+			if rv.IsNil() {
+				args = append(args, rv.Interface())
+			} else {
 				args = flattenStruct(args, rv.Elem())
 			}
 		} else {
-			args = append(args, v)
+			args = append(args, rv.Elem())
 		}
 	default:
 		args = append(args, v)
@@ -533,21 +535,26 @@ func flattenStruct(args Args, v reflect.Value) Args {
 	for _, fs := range ss.l {
 		fv := v.FieldByIndex(fs.index)
 		if fs.json {
+
 			js, err := json.Marshal(fv.Interface())
 			if err != nil {
 				log.Printf("redigo: WARNING: Failed to json marshal property %s error: %s", fs.name, err)
 			} else {
 				args = append(args, fs.name, string(js))
 			}
+
 		} else {
 
 			if fv.Kind() == reflect.Ptr {
-				if !fv.IsNil() {
+				if fv.IsNil() {
+					args = append(args, fs.name, fv.Interface())
+				} else {
 					args = append(args, fs.name, fv.Elem().Interface())
 				}
 			} else {
 				args = append(args, fs.name, fv.Interface())
 			}
+
 		}
 	}
 	return args
